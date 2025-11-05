@@ -1,4 +1,7 @@
+const dotenv = require('dotenv');
+dotenv.config();
 const express = require('express');
+const mongoose = require('mongoose');
 
 const feedRoutes = require('./routes/feed');
 
@@ -50,6 +53,24 @@ app.use((req, res, next) => {
 // app.use(cors(corsOptions));
 
 
+const PORT = process.env.PORT || 6000;
+const MONGO_URI = process.env.MONGO_URI;
+
+// Connect to MongoDB
+mongoose
+  .connect(MONGO_URI)
+  .then(() => {
+    console.log("✅ MongoDB Connected");
+
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("❌ DB Connection Failed:", err.message);
+  });
+
+
+
 app.use('/feed', feedRoutes);
 
-app.listen(8080);
