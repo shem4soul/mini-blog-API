@@ -1,22 +1,31 @@
-const dotenv = require('dotenv');
+const dotenv = require("dotenv");
 dotenv.config();
-const express = require('express');
-const mongoose = require('mongoose');
+const express = require("express");
+const connectDB = require("./config/db");
 
-const feedRoutes = require('./routes/feed');
+const feedRoutes = require("./routes/feed");
 
+// ✅ Security & Logging
+const helmet = require("helmet");
+const morgan = require("morgan");
 
 const app = express();
 
 app.use(express.json());
 
-app.use((req, res, next) => {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    next();
-});
+// ✅ Apply security and logging middlewares
+app.use(helmet());
+app.use(morgan("dev"));
 
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET, POST, PUT, PATCH, DELETE"
+  );
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  next();
+});
 
 // const rateLimit = require("express-rate-limit");
 
@@ -26,7 +35,6 @@ app.use((req, res, next) => {
 // });
 
 // app.use(limiter);
-
 
 // const cors = require("cors");
 
@@ -52,13 +60,10 @@ app.use((req, res, next) => {
 
 // app.use(cors(corsOptions));
 
-
 const PORT = process.env.PORT || 6000;
-const MONGO_URI = process.env.MONGO_URI;
 
-// Connect to MongoDB
-mongoose
-  .connect(MONGO_URI)
+// ✅ Connect to MongoDB
+connectDB()
   .then(() => {
     console.log("✅ MongoDB Connected");
 
@@ -70,7 +75,5 @@ mongoose
     console.error("❌ DB Connection Failed:", err.message);
   });
 
-
-
-app.use('/feed', feedRoutes);
-
+// ✅ Register routes
+app.use("/feed", feedRoutes);
