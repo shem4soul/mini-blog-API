@@ -15,7 +15,7 @@ app.use(express.json());
 
 // ✅ Apply security and logging middlewares
 app.use(helmet());
-app.use(morgan("dev"));
+app.use(morgan("combined"));
 
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
