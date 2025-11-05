@@ -2,20 +2,31 @@ const dotenv = require("dotenv");
 dotenv.config();
 const express = require("express");
 const connectDB = require("./config/db");
-
-const feedRoutes = require("./routes/feed");
-
-// ✅ Security & Logging
 const helmet = require("helmet");
 const morgan = require("morgan");
+const cookieParser = require("cookie-parser");
+const csrf = require("csurf");
 
+const feedRoutes = require("./routes/feed");
 const app = express();
 
-app.use(express.json());
-
-// ✅ Apply security and logging middlewares
+// --- Middlewares ---
 app.use(helmet());
-app.use(morgan("combined"));
+app.use(morgan('combined'));
+app.use(express.json());
+app.use(cookieParser());
+
+// --- CSRF Protection Setup ---
+const csrfProtection = csrf({ cookie: true });
+
+// Apply CSRF protection to all routes
+app.use(csrfProtection);
+
+// Add CSRF token to every response (so frontend can use it)
+app.use((req, res, next) => {
+  res.cookie('XSRF-TOKEN', req.csrfToken());
+  next();
+});
 
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
