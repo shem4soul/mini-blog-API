@@ -1,5 +1,7 @@
 const dotenv = require("dotenv");
 dotenv.config();
+const path = require('path');
+
 const express = require("express");
 const connectDB = require("./config/db");
 const helmet = require("helmet");
@@ -14,6 +16,7 @@ const app = express();
 app.use(helmet());
 app.use(morgan('combined'));
 app.use(express.json());
+app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use(cookieParser());
 
 // --- CSRF Protection Setup ---
