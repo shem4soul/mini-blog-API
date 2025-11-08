@@ -29,8 +29,8 @@ exports.createPost = (req, res, next) => {
   const post = new Post({
     title: title,
     content: content,
-    imageUrl: "images/duck.jpg",
-    creator: { name: "Maximilian" },
+    imageUrl: "images/hp.jpeg",
+    creator: { name: "shem" },
   });
   post
     .save()

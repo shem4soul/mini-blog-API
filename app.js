@@ -1,6 +1,6 @@
 const dotenv = require("dotenv");
 dotenv.config();
-const path = require('path');
+const path = require("path");
 
 const express = require("express");
 const connectDB = require("./config/db");
@@ -10,14 +10,24 @@ const cookieParser = require("cookie-parser");
 // const csrf = require("csurf");
 
 const feedRoutes = require("./routes/feed");
+const cors = require("cors"); // ✅ add cors
 const app = express();
 
 // --- Middlewares ---
 app.use(helmet());
-app.use(morgan('combined'));
+app.use(morgan("combined"));
 app.use(express.json());
-app.use('/images', express.static(path.join(__dirname, 'images')));
 app.use(cookieParser());
+
+// --- Serve images with proper CORS ---
+// Serve images with CORS headers
+app.use('/images', (req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*"); // allow all origins
+  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  next();
+}, express.static(path.join(__dirname, 'images')));
+
 
 // --- CSRF Protection Setup ---
 // const csrfProtection = csrf({ cookie: true });
@@ -31,27 +41,8 @@ app.use(cookieParser());
 //   next();
 // });
 
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, PATCH, DELETE"
-  );
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  next();
-});
-
-// const rateLimit = require("express-rate-limit");
-
-// const limiter = rateLimit({
-//   windowMs: 15 * 60 * 1000, // 15 minutes
-//   max: 100, // limit each IP to 100 requests
-// });
-
-// app.use(limiter);
-
-// const cors = require("cors");
-
+// --- CORS Setup ---
+// Commented out Scholarguide-specific CORS
 // const allowedOrigins = [
 //   "http://localhost:3000",
 //   "https://scholarguide.onrender.com",
@@ -62,7 +53,8 @@ app.use((req, res, next) => {
 
 // const corsOptions = {
 //   origin: function (origin, callback) {
-//     if (!origin || allowedOrigins.includes(origin)) {
+//     if (!origin) return callback(null, true);
+//     if (allowedOrigins.includes(origin)) {
 //       callback(null, true);
 //     } else {
 //       callback(new Error("Not allowed by CORS"));
@@ -72,9 +64,37 @@ app.use((req, res, next) => {
 //   allowedHeaders: ["Content-Type", "Authorization"],
 // };
 
-// app.use(cors(corsOptions));
+// Use simple CORS for localhost frontend
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 
-const PORT = process.env.PORT || 6000;
+// --- Manual CORS headers (optional, kept commented) ---
+// app.use((req, res, next) => {
+//   res.setHeader("Access-Control-Allow-Origin", "*");
+//   res.setHeader(
+//     "Access-Control-Allow-Methods",
+//     "GET, POST, PUT, PATCH, DELETE"
+//   );
+//   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+//   next();
+// });
+
+// const rateLimit = require("express-rate-limit");
+
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000, // 15 minutes
+//   max: 100, // limit each IP to 100 requests
+// });
+
+// app.use(limiter);
+
+// --- Server Port ---
+const PORT = process.env.PORT || 8080;
 
 // ✅ Connect to MongoDB
 connectDB()
@@ -92,7 +112,7 @@ connectDB()
 // ✅ Register routes
 app.use("/feed", feedRoutes);
 
-
+// --- Error handling ---
 app.use((error, req, res, next) => {
   console.log(error);
   const status = error.statusCode || 500;
