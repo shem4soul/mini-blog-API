@@ -19,32 +19,37 @@ exports.getPosts = (req, res, next) => {
 };
 
 exports.createPost = async (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    const error = new Error("Validation failed, entered data is incorrect.");
-    error.statusCode = 422;
-    throw error;
-  }
-
-  if (!req.file) {
-    const error = new Error("No image provided.");
-    error.statusCode = 422;
-    throw error;
-  }
-
   try {
-    // Upload image to Cloudinary
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      folder: "mini-blog", // optional folder
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const error = new Error("Validation failed, entered data is incorrect.");
+      error.statusCode = 422;
+      throw error;
+    }
+
+    if (!req.file) {
+      const error = new Error("No image provided.");
+      error.statusCode = 422;
+      throw error;
+    }
+
+    // ✅ Upload image directly from memory buffer
+    const uploadResult = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: "mini-blog" }, // optional folder name
+        (error, result) => {
+          if (result) resolve(result);
+          else reject(error);
+        }
+      );
+      stream.end(req.file.buffer); // send file buffer directly
     });
 
-    const title = req.body.title;
-    const content = req.body.content;
-
+    // Create post after Cloudinary upload
     const post = new Post({
-      title,
-      content,
-      imageUrl: result.secure_url, // Cloudinary URL
+      title: req.body.title,
+      content: req.body.content,
+      imageUrl: uploadResult.secure_url, // Cloudinary hosted image URL
       creator: { name: "shem" },
     });
 
@@ -55,12 +60,11 @@ exports.createPost = async (req, res, next) => {
       post: savedPost,
     });
   } catch (err) {
-    if (!err.statusCode) {
-      err.statusCode = 500;
-    }
+    if (!err.statusCode) err.statusCode = 500;
     next(err);
   }
 };
+
 
 exports.getPost = (req, res, next) => {
   const postId = req.params.postId;
