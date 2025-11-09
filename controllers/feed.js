@@ -87,20 +87,19 @@ exports.getPost = (req, res, next) => {
 
 
 
+
+
 exports.updatePost = async (req, res, next) => {
+  const postId = req.params.postId;
+  const errors = validationResult(req);
+
+  if (!errors.isEmpty()) {
+    const error = new Error("Validation failed, entered data is incorrect.");
+    error.statusCode = 422;
+    return next(error);
+  }
+
   try {
-    const postId = req.params.postId;
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      const error = new Error("Validation failed, entered data is incorrect.");
-      error.statusCode = 422;
-      throw error;
-    }
-
-    const title = req.body.title;
-    const content = req.body.content;
-
-    // Find existing post
     const post = await Post.findById(postId);
     if (!post) {
       const error = new Error("Could not find post.");
@@ -108,10 +107,18 @@ exports.updatePost = async (req, res, next) => {
       throw error;
     }
 
-    let imageUrl = post.imageUrl;
+    // Update title/content if provided
+    post.title = req.body.title || post.title;
+    post.content = req.body.content || post.content;
 
-    // If new image is uploaded, upload to Cloudinary
+    // If a new image is uploaded, replace the old one
     if (req.file) {
+      // Delete old image from Cloudinary if it exists
+      if (post.imagePublicId) {
+        await cloudinary.uploader.destroy(post.imagePublicId);
+      }
+
+      // Upload new image from buffer
       const uploadResult = await new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
           { folder: "mini-blog" },
@@ -123,28 +130,15 @@ exports.updatePost = async (req, res, next) => {
         stream.end(req.file.buffer);
       });
 
-      // Optional: Delete old image from Cloudinary
-      if (post.imageUrl && post.imageUrl.includes("cloudinary.com")) {
-        const publicId = post.imageUrl.split("/").pop().split(".")[0];
-        await cloudinary.uploader.destroy("mini-blog/" + publicId);
-      }
-
-      imageUrl = uploadResult.secure_url;
+      post.imageUrl = uploadResult.secure_url;
+      post.imagePublicId = uploadResult.public_id;
     }
 
-    // Update post data
-    post.title = title;
-    post.content = content;
-    post.imageUrl = imageUrl;
-
     const updatedPost = await post.save();
-
-    res.status(200).json({
-      message: "Post updated successfully!",
-      post: updatedPost,
-    });
+    res.status(200).json({ message: "Post updated!", post: updatedPost });
   } catch (err) {
     if (!err.statusCode) err.statusCode = 500;
     next(err);
   }
 };
+
