@@ -16,6 +16,6 @@ router.post('/post', upload.single('image'), createPostValidation, feedControlle
 
 router.get('/post/:postId', feedController.getPost);
 
-router.put("/post/:postId", upload.single("image"), updatePostValidation, feedController.getPost);
+router.put("/post/:postId", upload.single("image"), updatePostValidation, feedController.updatePost);
 
 module.exports = router;
