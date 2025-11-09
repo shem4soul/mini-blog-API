@@ -159,3 +159,42 @@ exports.updatePost = async (req, res, next) => {
     next(err);
   }
 };
+
+
+
+exports.deletePost = async (req, res, next) => {
+  try {
+    const postId = req.params.postId;
+    const post = await Post.findById(postId);
+
+    if (!post) {
+      const error = new Error("Could not find post.");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    // ✅ Delete the image from Cloudinary (if it’s a Cloudinary URL)
+    if (post.imageUrl && post.imageUrl.includes("res.cloudinary.com")) {
+      try {
+        // Extract public_id from Cloudinary URL
+        const publicId = post.imageUrl.split("/").slice(-1)[0].split(".")[0]; // e.g. "abcd1234"
+        await cloudinary.uploader.destroy(`mini-blog/${publicId}`);
+      } catch (error) {
+        console.warn(
+          "⚠️ Could not delete image from Cloudinary:",
+          error.message
+        );
+      }
+    }
+
+    // ✅ Delete the post from MongoDB
+    await Post.findByIdAndDelete(postId);
+
+    res.status(200).json({ message: "Post deleted successfully." });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
