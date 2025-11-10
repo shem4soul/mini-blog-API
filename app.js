@@ -10,6 +10,7 @@ const cookieParser = require("cookie-parser");
 // const csrf = require("csurf");
 
 const feedRoutes = require("./routes/feed");
+const authRoutes = require("./routes/auth");
 const cors = require("cors"); // ✅ add cors
 const app = express();
 
@@ -112,6 +113,7 @@ connectDB()
 
 // ✅ Register routes
 app.use("/feed", feedRoutes);
+app.use("/auth", authRoutes);
 
 // --- Error handling ---
 app.use((error, req, res, next) => {
