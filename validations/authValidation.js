@@ -21,3 +21,13 @@ exports.signupValidation = [
 
   body("name").trim().not().isEmpty().withMessage("Name is required."),
 ];
+
+
+exports.loginValidation = [
+  body("email")
+    .isEmail()
+    .withMessage("Please enter a valid email.")
+    .normalizeEmail(),
+
+  body("password").trim().not().isEmpty().withMessage("Password is required."),
+];
