@@ -63,8 +63,8 @@ exports.login = (req, res, next) => {
           userId: loadedUser._id.toString(),
         },
         process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN } 
-      );
+        { expiresIn: process.env.JWT_EXPIRES_IN.trim() } 
+            );
       res.status(200).json({ token: token, userId: loadedUser._id.toString() });
     })
     .catch((err) => {
