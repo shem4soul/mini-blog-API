@@ -1,6 +1,7 @@
 const { validationResult } = require("express-validator");
 
 const Post = require("../models/post");
+const User = require('../models/user')
 const cloudinary = require('../config/cloudinary'); 
 
 exports.getPosts = (req, res, next) => {
@@ -67,7 +68,7 @@ exports.createPost = async (req, res, next) => {
     post
       .save()
       .then(result => {
-        return UserActivation.findById(req.userId);
+        return User.findById(req.userId);
       })
       .then( user => {
         creator = user;
