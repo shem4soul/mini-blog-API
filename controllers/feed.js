@@ -134,7 +134,11 @@ exports.updatePost = async (req, res, next) => {
       error.statusCode = 404;
       throw error;
     }
-
+     if (post.creator.toString() !== req.userId) {
+      const error = new Error('Not authorized!');
+      error.statusCode = 403;
+      throw error;
+     }
     let imageUrl = post.imageUrl; // Default: keep old image
 
     // ✅ If a new image file is uploaded
@@ -196,6 +200,12 @@ exports.deletePost = async (req, res, next) => {
       throw error;
     }
 
+    if (post.creator.toString() !== req.userId) {
+      const error = new Error('Not authorized!');
+      error.statusCode = 403;
+      throw error;
+     }
+  
     // ✅ Delete the image from Cloudinary (if it’s a Cloudinary URL)
     if (post.imageUrl && post.imageUrl.includes("res.cloudinary.com")) {
       try {
