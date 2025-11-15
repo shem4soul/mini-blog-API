@@ -188,7 +188,6 @@ exports.updatePost = async (req, res, next) => {
 };
 
 
-
 exports.deletePost = async (req, res, next) => {
   try {
     const postId = req.params.postId;
@@ -201,17 +200,19 @@ exports.deletePost = async (req, res, next) => {
     }
 
     if (post.creator.toString() !== req.userId) {
-      const error = new Error('Not authorized!');
+      const error = new Error("Not authorized!");
       error.statusCode = 403;
       throw error;
-     }
-  
-    // ✅ Delete the image from Cloudinary (if it’s a Cloudinary URL)
+    }
+
+    // ✅ Delete image from Cloudinary if applicable
     if (post.imageUrl && post.imageUrl.includes("res.cloudinary.com")) {
       try {
-        // Extract public_id from Cloudinary URL
-        const publicId = post.imageUrl.split("/").slice(-1)[0].split(".")[0]; // e.g. "abcd1234"
-        await cloudinary.uploader.destroy(`mini-blog/${publicId}`);
+        const match = post.imageUrl.match(/\/upload\/(?:v\d+\/)?(.+)\.\w+$/);
+        if (match) {
+          const publicId = match[1];
+          await cloudinary.uploader.destroy(publicId);
+        }
       } catch (error) {
         console.warn(
           "⚠️ Could not delete image from Cloudinary:",
@@ -220,8 +221,15 @@ exports.deletePost = async (req, res, next) => {
       }
     }
 
-    // ✅ Delete the post from MongoDB
-    await Post.findByIdAndDelete(postId);
+    // ✅ Delete post from MongoDB and then update the user
+    await Post.findByIdAndDelete(postId)
+      .then(() => {
+        return User.findById(req.userId);
+      })
+      .then((user) => {
+        user.posts.pull(postId);
+        return user.save();
+      });
 
     res.status(200).json({ message: "Post deleted successfully." });
   } catch (err) {
