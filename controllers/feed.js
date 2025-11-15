@@ -55,30 +55,26 @@ exports.createPost = async (req, res, next) => {
       stream.end(req.file.buffer); // send file buffer directly
     });
 
-    // Create post after Cloudinary upload
+    // Create post
     const post = new Post({
       title: req.body.title,
       content: req.body.content,
-      imageUrl: uploadResult.secure_url, // Cloudinary hosted image URL
+      imageUrl: uploadResult.secure_url,
       creator: req.userId,
     });
-    post
-      .save()
-      .then(result => {
-        return User.findById(req.userId);
-      })
-      .then( user => {
-        creator = user;
-        user.posts.push(post);
-        return user.save();
-      })
-       .then(result => {
-         res.status(201).json({
+
+    const savedPost = await post.save();
+
+    // Update user
+    const user = await User.findById(req.userId);
+    user.posts.push(savedPost);
+    await user.save();
+
+    res.status(201).json({
       message: "Post created successfully!",
-      post: post,
-      creator: { _id: creator._id, name: creator.name}
+      post: savedPost,
+      creator: { _id: user._id, name: user.name },
     });
-    })
   } catch (err) {
     if (!err.statusCode) err.statusCode = 500;
     next(err);
@@ -86,23 +82,22 @@ exports.createPost = async (req, res, next) => {
 };
 
 
-exports.getPost = (req, res, next) => {
+exports.getPost = async (req, res, next) => {
   const postId = req.params.postId;
-  Post.findById(postId)
-    .then((post) => {
-      if (!post) {
-        const error = new Error("Could not find post.");
-        error.statusCode = 404;
-        throw error;
-      }
-      res.status(200).json({ message: "Post fetched.", post: post });
-    })
-    .catch((err) => {
-      if (!err.statusCode) {
-        err.statusCode = 500;
-      }
-      next(err);
-    });
+  try {
+    const post = await Post.findById(postId);
+    if (!post) {
+      const error = new Error("Could not find post.");
+      error.statusCode = 404;
+      throw error;
+    }
+    res.status(200).json({ message: "Post fetched.", post: post });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
 };
 
 
