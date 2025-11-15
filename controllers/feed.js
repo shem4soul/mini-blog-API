@@ -1,5 +1,6 @@
 const { validationResult } = require("express-validator");
 
+const io = require("../socket");
 const Post = require("../models/post");
 const User = require('../models/user')
 const cloudinary = require('../config/cloudinary'); 
