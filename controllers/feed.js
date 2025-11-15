@@ -11,7 +11,8 @@ exports.getPosts = async (req, res, next) => {
   try {
     const totalItems = await Post.find().countDocuments();
     const posts = await Post.find()
-    .populate('creator')
+      .populate('creator')
+      .sort({ createdAt: -1})
       .skip((currentPage - 1) * perPage)
       .limit(perPage);
 
@@ -71,11 +72,11 @@ exports.createPost = async (req, res, next) => {
     user.posts.push(savedPost);
     await user.save();
     // io.getIO().broadcast.emit('posts', {action: 'create', post: post});
-    io.getIO().currentSocket.broadcast.emit("posts", {
+    io.getIO().currentSocket.broadcast.emit("posts", 
+      {
       action: "create",
-      post: savedPost,
-    });
-
+      post: { ...post._doc, creator: { _id: req.userId, name: user.name}}
+      });
     res.status(201).json({
       message: "Post created successfully!",
       post: savedPost,
@@ -126,17 +127,17 @@ exports.updatePost = async (req, res, next) => {
     const title = req.body.title;
     const content = req.body.content;
 
-    const post = await Post.findById(postId);
+    const post = await Post.findById(postId).populate("creator");
     if (!post) {
       const error = new Error("Could not find post.");
       error.statusCode = 404;
       throw error;
     }
-     if (post.creator.toString() !== req.userId) {
-      const error = new Error('Not authorized!');
+    if (post.creator._id.toString() !== req.userId) {
+      const error = new Error("Not authorized!");
       error.statusCode = 403;
       throw error;
-     }
+    }
     let imageUrl = post.imageUrl; // Default: keep old image
 
     // ✅ If a new image file is uploaded
@@ -174,6 +175,13 @@ exports.updatePost = async (req, res, next) => {
     post.imageUrl = imageUrl;
 
     const updatedPost = await post.save();
+
+    // 🔥 BROADCAST to OTHER clients (NO duplicates)
+    const io = require("../socket").getIO();
+    io.currentSocket.broadcast.emit("posts", {
+      action: "update",
+      post: updatedPost,
+    });
 
     res.status(200).json({
       message: "Post updated successfully!",
