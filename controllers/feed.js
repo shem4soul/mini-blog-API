@@ -211,7 +211,7 @@ exports.deletePost = async (req, res, next) => {
       throw error;
     }
 
-    // ✅ Delete image from Cloudinary if applicable
+    // Delete image from Cloudinary if applicable
     if (post.imageUrl && post.imageUrl.includes("res.cloudinary.com")) {
       try {
         const match = post.imageUrl.match(/\/upload\/(?:v\d+\/)?(.+)\.\w+$/);
@@ -227,15 +227,15 @@ exports.deletePost = async (req, res, next) => {
       }
     }
 
-    // ✅ Delete post from MongoDB and then update the user
-    await Post.findByIdAndDelete(postId)
-      .then(() => {
-        return User.findById(req.userId);
-      })
-      .then((user) => {
-        user.posts.pull(postId);
-        return user.save();
-      });
+    // Delete post from MongoDB and update user
+    await Post.findByIdAndDelete(postId);
+    const user = await User.findById(req.userId);
+    user.posts.pull(postId);
+    await user.save();
+
+    // 🔥 BROADCAST to other clients
+    const io = require("../socket").getIO();
+    io.currentSocket.broadcast.emit("posts", { action: "delete", postId });
 
     res.status(200).json({ message: "Post deleted successfully." });
   } catch (err) {
