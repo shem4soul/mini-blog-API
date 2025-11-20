@@ -9,6 +9,12 @@ const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
 // const csrf = require("csurf");
 
+
+app.get("/", (req, res) => {
+  res.send("Social Network Blog API is running 🚀");
+});
+
+
 const feedRoutes = require("./routes/feed");
 const authRoutes = require("./routes/auth");
 const cors = require("cors"); // ✅ add cors
@@ -36,7 +42,9 @@ app.use(
   express.static(path.join(__dirname, "images"))
 );
 
-// --- CSRF Protection Setup ---
+// --- CSRF Protection Setup --- 
+// ✔ If your project uses JWT/Bearer tokens (stored in localStorage), remove CSRF:
+
 // const csrfProtection = csrf({ cookie: true });
 
 // Apply CSRF protection to all routes
@@ -148,6 +156,12 @@ app.use((error, req, res, next) => {
   const data = error.data;
   res.status(status).json({ message: message, data: data });
 });
+
+
+app.get("/", (req, res) => {
+  res.send("Social Network Blog API is running 🚀");
+});
+
 
 // const dotenv = require("dotenv");
 // dotenv.config();
